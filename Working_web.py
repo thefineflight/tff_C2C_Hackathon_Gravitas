@@ -239,12 +239,32 @@ st.write("Analyze stock price trends, moving averages, and predict future values
 with st.expander("ℹ️ How to Use"):
     st.markdown("""
     - **Ticker**: Stock symbol (like `TSLA` for Tesla).
-    - **Period**: Time period for data (like `3y` for 3 years).
+    - **Period**: Time period for data (like `3y` for 3 years)
+                  (A period of 3 years is optimal)
+                  (Higher period takes more data for higher accuracy but takes more time).
     - **MA-1 / MA-2**: Moving Average windows.
-    - **Seq Len**: Sequence length for LSTM training.
-    - **Test Ratio**: Portion of data used for testing (0.2 = 20%).
+                      (An average moving over a period, removing the last day and adding the next day)
+                      (Optimal short MA is usually 1/15 of the trading days)
+                      (Optimal long MA is 4 times short MA)
+                      (Any other data set could be used according to your preference)
+    - **Golden Crossovers are buy signals in past data at a lower closing price
+          A crossover happening between two days, for which the previous day had Short MA above Long MA
+    - **Death Crossovers are sell/cautious signals in past data at a higher closing price
+          A crossover happening between two days, for which the previous day had Short MA below Long MA
+     
+    - **MACHINE LEARNING AND PREDICTION**
+                
+    - **Seq Len**: Sequence length for LSTM training. 
+                (No of days taken in each iteration) (optimally 30 days)
+    - **Test Ratio**: Portion of data used for testing (optimally 12% to 20%).
     - **Epochs / Batch Size**: Training parameters for LSTM.
-    - **Predict Days**: Number of future days to forecast.
+                (Higher no of Epochs correspond to more no of iterations run by ML)
+                (Optimal Epochs is 1/15 to 1/10 of trading days)
+                (Batch size should be kept between 15-30, higher batch size consumes more data for efficiency)
+                (Running more Epochs would consume more time but provide higher accuracy)
+    - **Predict Days**: Number of future days to forecast. (Predicting 5-15 days is optimal)
+                (WARNING ! : Predicting any higher data set would exponentially decrease accuracy)
+
     ℹ️ **Our Model trains itself using MAC data, in multiple sets of iterations to predict upcoming trends**
     """)
 
