@@ -218,8 +218,8 @@ with st.expander("ℹ️ How to Use"):
     - **Test Ratio**: Portion of data used for testing.
     - **Epochs / Batch Size**: Training parameters for LSTM.
 
-    - **We have removed the future prediction part as it was the part of a research that I only used for hackathon (with permission)
-    -   To maintain their hardwork's originality and prevent it from plagiarism, EMAs are replaced with SMAs and predictions are removed**
+    - **We have removed the future prediction part as it was the part of a research that I only used for hackathon (with permission)**
+    -   To maintain their hardwork's originality and prevent it from plagiarism, EMAs are replaced with SMAs and predictions are removed
     """)
 
 # Sidebar inputs (removed Predict Days)
@@ -248,6 +248,7 @@ if st.button("🚀 Run Analysis"):
             int(entries["Batch Size"])
         )
     tab4.text(logs)
+
 
 
 
