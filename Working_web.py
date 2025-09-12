@@ -41,7 +41,7 @@ def build_lstm_model(input_shape, units=50, dropout=0.2):
 # -------------------------------
 # Main Analysis Function
 # -------------------------------
-def run_analysis(T, prd, p1, p2, seq_len, test_ratio, epochs, batch_size, predict_days):
+def run_analysis(T, prd, p1, p2, seq_len, test_ratio, epochs, batch_size):
     logs = io.StringIO()
     sys.stdout = logs
     try:
@@ -68,13 +68,9 @@ def run_analysis(T, prd, p1, p2, seq_len, test_ratio, epochs, batch_size, predic
 
         # Moving averages
         x1, x2, y1, y2 = [], [], [], []
-
-        # Short MA
         for i in range(p1, len(CL) + 1):
             y1.append(s.mean(CL[i - p1 : i]))
             x1.append(i)
-
-        # Long MA
         for i in range(p2, len(CL) + 1):
             y2.append(s.mean(CL[i - p2 : i]))
             x2.append(i)
@@ -177,33 +173,10 @@ def run_analysis(T, prd, p1, p2, seq_len, test_ratio, epochs, batch_size, predic
             r2 = r2_score(y_test_inv, pred_test)
             accuracy = max(0, r2) * 100
 
-            tab4.write(f"💰 3 Year Trend Profit per share: {prf}")
-            tab4.write(f"✅ Accuracy: {accuracy:.2f}%")
-            tab4.write(f"📌 RMSE: {rmse:.2f}")
-            tab4.write(f"📌 R² Score: {r2:.3f}")
-
-            # Plot 3: Future predictions
-            last_seq = prices_scaled[-seq_len:]
-            future_preds = []
-            current_seq = last_seq.reshape((1, seq_len, 1))
-
-            for _ in range(predict_days):
-                next_pred = model.predict(current_seq)[0, 0]
-                future_preds.append(next_pred)
-                current_seq = np.append(current_seq[:, 1:, :], [[[next_pred]]], axis=1)
-
-            future_preds_inv = scaler.inverse_transform(np.array(future_preds).reshape(-1, 1))
-
-            plt.figure(figsize=(8, 4))
-            plt.plot(range(len(CL)), CL, color="blue", label="Historical")
-            plt.plot(range(len(CL), len(CL) + predict_days), future_preds_inv, color="red", label="Future Prediction")
-            plt.legend()
-            plt.title(f"{T} | {predict_days}-Day Future Prediction")
-            plt.xlabel(f"Day count from {date1y}")
-            plt.ylabel("Price")
-            plt.grid(True)
-            tab3.pyplot(plt)
-
+            tab3.write(f"💰 3 Year Trend Profit per share: {prf}")
+            tab3.write(f"✅ Accuracy: {accuracy:.2f}%")
+            tab3.write(f"📌 RMSE: {rmse:.2f}")
+            tab3.write(f"📌 R² Score: {r2:.3f}")
         else:
             print("⚠ Skipping neural network part (TensorFlow not installed).")
 
@@ -239,46 +212,24 @@ st.write("Analyze stock price trends, moving averages, and predict future values
 with st.expander("ℹ️ How to Use"):
     st.markdown("""
     - **Ticker**: Stock symbol (like `TSLA` for Tesla).
-    - **Period**: Time period for data (like `3y` for 3 years)
-                  (A period of 3 years is optimal)
-                  (Higher period takes more data for higher accuracy but takes more time).
+    - **Period**: Time period for data (like `3y` for 3 years).
     - **MA-1 / MA-2**: Moving Average windows.
-                      (An average moving over a period, removing the last day and adding the next day)
-                      (Optimal short MA is usually 1/15 of the trading days)
-                      (Optimal long MA is 4 times short MA)
-                      (Any other data set could be used according to your preference)
-    - **Golden Crossovers are buy signals in past data at a lower closing price
-          A crossover happening between two days, for which the previous day had Short MA above Long MA
-    - **Death Crossovers are sell/cautious signals in past data at a higher closing price
-          A crossover happening between two days, for which the previous day had Short MA below Long MA
-     
-    - **MACHINE LEARNING AND PREDICTION**
-                
     - **Seq Len**: Sequence length for LSTM training. 
-                (No of days taken in each iteration) (optimally 30 days)
-    - **Test Ratio**: Portion of data used for testing (optimally 12% to 20%).
+    - **Test Ratio**: Portion of data used for testing.
     - **Epochs / Batch Size**: Training parameters for LSTM.
-                (Higher no of Epochs correspond to more no of iterations run by ML)
-                (Optimal Epochs is 1/15 to 1/10 of trading days)
-                (Batch size should be kept between 15-30, higher batch size consumes more data for efficiency)
-                (Running more Epochs would consume more time but provide higher accuracy)
-    - **Predict Days**: Number of future days to forecast. (Predicting 5-15 days is optimal)
-                (WARNING ! : Predicting any higher data set would exponentially decrease accuracy)
-
-    ℹ️ **Our Model trains itself using MAC data, in multiple sets of iterations to predict upcoming trends**
     """)
 
-# Sidebar inputs
+# Sidebar inputs (removed Predict Days)
 st.sidebar.header("⚙️ Parameters")
-labels = ["Ticker", "Period", "MA-1", "MA-2", "Seq Len", "Test Ratio", "Epochs", "Batch Size", "Predict Days"]
-defaults = ["TSLA", "3y", "50", "200", "30", "0.2", "25", "16", "10"]
+labels = ["Ticker", "Period", "MA-1", "MA-2", "Seq Len", "Test Ratio", "Epochs", "Batch Size"]
+defaults = ["TSLA", "3y", "50", "200", "30", "0.2", "25", "16"]
 entries = {}
 for lbl, dft in zip(labels, defaults):
     entries[lbl] = st.sidebar.text_input(lbl, dft)
 
-# Tabs for output
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["📊 Moving Averages", "🤖 LSTM Predictions", "🔮 Future Forecast", "💰 Profit & Accuracy", "📜 Logs"]
+# Tabs for output (removed future-forecast tab)
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["📊 Moving Averages", "🤖 LSTM Predictions", "💰 Profit & Accuracy", "📜 Logs"]
 )
 
 if st.button("🚀 Run Analysis"):
@@ -291,7 +242,6 @@ if st.button("🚀 Run Analysis"):
             int(entries["Seq Len"]),
             float(entries["Test Ratio"]),
             int(entries["Epochs"]),
-            int(entries["Batch Size"]),
-            int(entries["Predict Days"])
+            int(entries["Batch Size"])
         )
-    tab5.text(logs)
+    tab4.text(logs)
