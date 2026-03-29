@@ -547,3 +547,77 @@ plt.savefig(os.path.join(ann_plot_dir, "lm_loss_curve.png"), dpi=300)
 plt.close()
 
 print(f"ANN training complete after {actual_epochs} epochs. Plots saved in folder: {ann_plot_dir}")
+
+print("Running Future Predictions")
+
+# ---------------- FUTURE PREDICTION ----------------
+future_returns = []
+future_prices = []
+
+# Start from last available data
+temp_close = close_np.copy()
+temp_ma1 = ma1_np.copy()
+temp_ma2 = ma2_np.copy()
+temp_rsi = rsi_np.copy()
+
+for i in range(future_days):
+
+    # Build latest feature window
+    feat_stack = np.stack([temp_close, temp_ma1, temp_ma2, temp_rsi], axis=1)
+
+    last_window = feat_stack[-WINDOW:]
+
+    # Normalize using TRAIN stats
+    last_window_n = (last_window - feat_mean) / feat_std
+    last_window_n = last_window_n.reshape(1, -1)
+
+    # Predict normalized return
+    pred_return_n = model_lm.predict(last_window_n, verbose=0)[0][0]
+
+    # De-normalize return
+    pred_return = pred_return_n * y_std + y_mean
+    future_returns.append(pred_return)
+
+    # Convert return -> price
+    last_price = temp_close[-1]
+    pred_price = last_price * (1 + pred_return)
+    future_prices.append(pred_price)
+
+    # Append new price
+    temp_close = np.append(temp_close, pred_price)
+
+    # Recompute indicators
+    new_ma1 = pd.Series(temp_close).rolling(window=p1).mean().iloc[-1]
+    new_ma2 = pd.Series(temp_close).rolling(window=p2).mean().iloc[-1]
+
+    delta = pd.Series(temp_close).diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+    avg_gain = gain.ewm(alpha=1 / rsi_period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / rsi_period, adjust=False).mean()
+    rs = avg_gain / avg_loss
+    rsi_series = 100 - (100 / (1 + rs))
+    new_rsi = rsi_series.iloc[-1]
+
+    temp_ma1 = np.append(temp_ma1, new_ma1)
+    temp_ma2 = np.append(temp_ma2, new_ma2)
+    temp_rsi = np.append(temp_rsi, new_rsi)
+
+future_prices = np.array(future_prices)
+
+plt.figure(figsize=(12,6))
+
+# Actual visible prices
+plt.plot(range(1, len(close_np)+1), close_np, label='Actual Close')
+
+# Future predictions
+future_x = range(len(close_np)+1, len(close_np)+future_days+1)
+plt.plot(future_x, future_prices, linestyle='--', label='Future Prediction')
+
+plt.xlabel("Day Number")
+plt.ylabel("Price")
+plt.title(f"{T} Future Price Prediction ({future_days} Days)")
+plt.legend()
+plt.tight_layout()
+plt.savefig(f"{date_str} {T}_future_prediction.png", dpi=600)
+plt.show()
